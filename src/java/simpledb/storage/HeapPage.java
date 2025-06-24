@@ -72,9 +72,7 @@ public class HeapPage implements Page {
         @return the number of tuples on this page
     */
     private int getNumTuples() {        
-        // some code goes here
-        return 0;
-
+        return (BufferPool.getPageSize()*8) / (td.getSize() * 8 + 1);
     }
 
     /**
@@ -82,9 +80,7 @@ public class HeapPage implements Page {
      * @return the number of bytes in the header of a page in a HeapFile with each tuple occupying tupleSize bytes
      */
     private int getHeaderSize() {        
-        
-        // some code goes here
-        return 0;
+        return Math.ceilDiv(getNumTuples(), 8);
                  
     }
     
@@ -118,7 +114,8 @@ public class HeapPage implements Page {
      */
     public HeapPageId getId() {
     // some code goes here
-    throw new UnsupportedOperationException("implement this");
+        return pid;
+    // throw new UnsupportedOperationException("implement this");
     }
 
     /**
@@ -287,8 +284,13 @@ public class HeapPage implements Page {
      * Returns the number of empty slots on this page.
      */
     public int getNumEmptySlots() {
-        // some code goes here
-        return 0;
+        int slots = 0;
+        for(int i = 0; i < numSlots; i ++){
+            if(!isSlotUsed(i)){
+                slots += 1;
+            }
+        }
+        return slots;
     }
 
     /**
@@ -296,7 +298,9 @@ public class HeapPage implements Page {
      */
     public boolean isSlotUsed(int i) {
         // some code goes here
-        return false;
+        int byteIndex = i / 8;
+        int bitOffset = i % 8;
+        return (header[byteIndex] & (1 << bitOffset)) != 0;
     }
 
     /**
@@ -312,8 +316,14 @@ public class HeapPage implements Page {
      * (note that this iterator shouldn't return tuples in empty slots!)
      */
     public Iterator<Tuple> iterator() {
+        List<Tuple> tupleList = new ArrayList<>();
+        for (int i = 0; i < tuples.length; i++){
+            if(isSlotUsed(i)){
+                tupleList.add(tuples[i]);
+            }
+        }
+        return tupleList.iterator();
         // some code goes here
-        return null;
     }
 
 }

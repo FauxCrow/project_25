@@ -8,6 +8,7 @@ import simpledb.transaction.TransactionAbortedException;
 import simpledb.transaction.TransactionId;
 
 import java.io.*;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -39,6 +40,9 @@ public class BufferPool {
     private final int numPages;
     private final Map<PageId, Page> pageCache;
 
+    // Note: maintain insertion order for LRU
+    private final LinkedHashMap<PageId, Page> lruCache;
+
     /**
      * Creates a BufferPool that caches up to numPages pages.
      *
@@ -47,6 +51,7 @@ public class BufferPool {
     public BufferPool(int numPages) {
         this.numPages = numPages;
         this.pageCache = new ConcurrentHashMap<>();
+        this.lruCache = new LinkedHashMap<PageId, Page>(numPages, 0.75f, true);
     }
 
     public static int getPageSize() {
@@ -86,14 +91,19 @@ public class BufferPool {
             return pageCache.get(pid);
         }
 
-        // Temp: until we implement an eviction policy!!
+        /* Temp: until we implement an eviction policy!!
         if (pageCache.size() >= numPages) {
             throw new DbException("Buffer pool exceeded max capacity of " + numPages + " pages");
+        } */
+
+        if (pageCache.size() >= numPages) {
+            evictPage();
         }
 
         DbFile file = Database.getCatalog().getDatabaseFile(pid.getTableId());
         Page page = file.readPage(pid);
         pageCache.put(pid, page);
+        lruCache.put(pid, page);
 
         return page;
     }
@@ -202,8 +212,8 @@ public class BufferPool {
      * are removed from the cache so they can be reused safely
      */
     public synchronized void discardPage(PageId pid) {
-        // some code goes here
-        // not necessary for lab1
+        pageCache.remove(pid);
+        lruCache.remove(pid);
     }
 
     /**
@@ -212,8 +222,12 @@ public class BufferPool {
      * @param pid an ID indicating the page to flush
      */
     private synchronized void flushPage(PageId pid) throws IOException {
-        // some code goes here
-        // not necessary for lab1
+        Page page = pageCache.get(pid);
+        if (page != null && page.isDirty() != null){
+            DbFile dbFile = Database.getCatalog().getDatabaseFile(pid.getTableId());
+            dbFile.writePage(page);
+            page.markDirty(false, null);
+        }
     }
 
     /**
@@ -229,8 +243,21 @@ public class BufferPool {
      * Flushes the page to disk to ensure dirty pages are updated on disk.
      */
     private synchronized void evictPage() throws DbException {
-        // some code goes here
-        // not necessary for lab1
+        for (Map.Entry<PageId, Page> entry : lruCache.entrySet()) {
+            PageId pageId = entry.getKey();
+            Page page = entry.getValue();
+
+            try {
+                if (page.isDirty() == null){
+                    flushPage(pageId);
+                    discardPage(pageId);
+                    return;
+                }
+            }
+             catch (IOException e){
+                throw new DbException("Failed to flush page during eviction");
+             }
+        }
     }
 
 }

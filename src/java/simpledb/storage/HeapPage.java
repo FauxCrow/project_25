@@ -341,12 +341,12 @@ public class HeapPage implements Page {
     private void markSlotUsed(int i, boolean value) {
         // some code goes here
         // not necessary for lab1
-        int byteIndex = i / 8; //find which byte in header
-        int bitOffset = i % 8; //finds which bit inside the byte
-        if(value){ //if value is true
-             header[byteIndex] |= (1 << bitOffset); // set bit to 1
-        } else { // if value is false
-            header[byteIndex] &= ~(1 << bitOffset); // set bit to 0
+        int byteIndex = i / 8; 
+        int bitOffset = i % 8; 
+        if(value){ 
+             header[byteIndex] |= (1 << bitOffset); 
+        } else { 
+            header[byteIndex] &= ~(1 << bitOffset); 
         }
         
        

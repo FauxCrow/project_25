@@ -1,8 +1,12 @@
 package simpledb.execution;
 
+import java.io.IOException;
+
 import simpledb.common.Database;
 import simpledb.common.DbException;
+import simpledb.common.Type;
 import simpledb.storage.BufferPool;
+import simpledb.storage.IntField;
 import simpledb.storage.Tuple;
 import simpledb.storage.TupleDesc;
 import simpledb.transaction.TransactionAbortedException;
@@ -29,26 +33,38 @@ public class Insert extends Operator {
      *             if TupleDesc of child differs from table into which we are to
      *             insert.
      */
+    private TransactionId t;
+    private OpIterator child;
+    private int tableId;
+    
+
     public Insert(TransactionId t, OpIterator child, int tableId)
             throws DbException {
         // some code goes here
+        this.t = t;
+        this.child = child;
+        this.tableId = tableId;
+
     }
 
     public TupleDesc getTupleDesc() {
         // some code goes here
-        return null;
+        return new TupleDesc(new Type[]{Type.INT_TYPE});
     }
 
     public void open() throws DbException, TransactionAbortedException {
         // some code goes here
+        child.open();
     }
 
     public void close() {
         // some code goes here
+        child.close();
     }
 
     public void rewind() throws DbException, TransactionAbortedException {
         // some code goes here
+        child.rewind();
     }
 
     /**
@@ -66,17 +82,34 @@ public class Insert extends Operator {
      */
     protected Tuple fetchNext() throws TransactionAbortedException, DbException {
         // some code goes here
-        return null;
+        int counter = 0;
+        while(child.hasNext()){
+            Tuple tuple = child.next();
+            try{
+                Database.getBufferPool().insertTuple(this.t, this.tableId, tuple);
+                counter ++;
+            } catch (IOException error) {
+                throw new DbException("Insertion error: " + error.getMessage());
+            }
+        }
+        Tuple result = new Tuple(getTupleDesc());
+        result.setField(0, new IntField(counter));
+        return result;
     }
+
+    
 
     @Override
     public OpIterator[] getChildren() {
         // some code goes here
-        return null;
+        return new OpIterator[]{this.child};
     }
 
     @Override
     public void setChildren(OpIterator[] children) {
         // some code goes here
+        if (children.length > 0){
+            this.child = children[0];
+        }
     }
 }

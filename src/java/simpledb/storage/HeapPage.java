@@ -3,6 +3,7 @@ package simpledb.storage;
 import simpledb.common.Database;
 import simpledb.common.DbException;
 import simpledb.common.Debug;
+import simpledb.common.Permissions;
 import simpledb.common.Catalog;
 import simpledb.transaction.TransactionId;
 
@@ -249,6 +250,13 @@ public class HeapPage implements Page {
     public void deleteTuple(Tuple t) throws DbException {
         // some code goes here
         // not necessary for lab1
+            RecordId rid = t.getRecordId();
+            if(rid.getPageId().equals(this.pid) && isSlotUsed(rid.getTupleNumber())){
+                tuples[rid.getTupleNumber()] = null;
+                markSlotUsed(rid.getTupleNumber(), false);
+            } else {
+                throw new DbException("An error occurred, delete failed");
+            }
     }
 
     /**
@@ -261,15 +269,34 @@ public class HeapPage implements Page {
     public void insertTuple(Tuple t) throws DbException {
         // some code goes here
         // not necessary for lab1
+        for(int i = 0; i < numSlots; i ++){
+            if(!isSlotUsed(i)){
+                tuples[i] = t;
+                RecordId rid = new RecordId(pid, i);
+                t.setRecordId(rid);
+                markSlotUsed(i, true);
+                return;
+            }
+        }
+        throw new DbException("No slots available");
     }
 
     /**
      * Marks this page as dirty/not dirty and record that transaction
      * that did the dirtying
      */
+    private boolean isDirty = false;
+    private TransactionId dirtyTid = null;
+
     public void markDirty(boolean dirty, TransactionId tid) {
         // some code goes here
 	// not necessary for lab1
+        this.isDirty = dirty;
+        if (dirty) {
+            this.dirtyTid = tid;
+        } else {
+            this.dirtyTid = null;
+        }
     }
 
     /**
@@ -278,7 +305,11 @@ public class HeapPage implements Page {
     public TransactionId isDirty() {
         // some code goes here
 	// Not necessary for lab1
-        return null;      
+        if(isDirty){
+            return dirtyTid;
+        } else {
+            return null;
+        }
     }
 
     /**
@@ -310,6 +341,15 @@ public class HeapPage implements Page {
     private void markSlotUsed(int i, boolean value) {
         // some code goes here
         // not necessary for lab1
+        int byteIndex = i / 8; //find which byte in header
+        int bitOffset = i % 8; //finds which bit inside the byte
+        if(value){ //if value is true
+             header[byteIndex] |= (1 << bitOffset); // set bit to 1
+        } else { // if value is false
+            header[byteIndex] &= ~(1 << bitOffset); // set bit to 0
+        }
+        
+       
     }
 
     /**

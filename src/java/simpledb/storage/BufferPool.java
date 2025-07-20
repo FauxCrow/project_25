@@ -11,6 +11,8 @@ import java.io.*;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.List;
+
 
 /**
  * BufferPool manages the reading and writing of pages into memory from
@@ -170,6 +172,15 @@ public class BufferPool {
             throws DbException, IOException, TransactionAbortedException {
         // some code goes here
         // not necessary for lab1
+        DbFile file = Database.getCatalog().getDatabaseFile(tableId);
+        List<Page> page = file.insertTuple(tid, t);
+        for (Page p: page){
+            p.markDirty(true, tid);
+            pageCache.put(p.getId(),p);
+        }
+
+        
+        
     }
 
     /**
@@ -189,6 +200,9 @@ public class BufferPool {
             throws DbException, IOException, TransactionAbortedException {
         // some code goes here
         // not necessary for lab1
+        int tableId = t.getRecordId().getPageId().getTableId();
+        DbFile file = Database.getCatalog().getDatabaseFile(tableId);
+        file.deleteTuple(tid, t);
     }
 
     /**

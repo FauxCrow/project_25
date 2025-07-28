@@ -244,9 +244,5 @@ public class HeapFile implements DbFile {
         // some code goes here 
         return new HeapFileIterator(this.getId(), tid, this.numPages());
     }
-
-    
-    
-
 }
 

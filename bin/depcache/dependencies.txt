@@ -158,7 +158,6 @@ java.lang.invoke.MethodHandles$Lookup
 simpledb.execution.OpIterator
 java.lang.invoke.MethodHandles
 simpledb.optimizer.LogicalSubplanJoinNode
-java.lang.Object
 java.lang.String
 java.lang.invoke.StringConcatFactory
 simpledb.execution.Predicate$Op
@@ -438,6 +437,7 @@ simpledb.execution.Predicate
 java.io.ByteArrayInputStream
 java.io.DataOutputStream
 java.lang.Boolean
+java.lang.String
 java.text.ParseException
 java.util.NoSuchElementException
 simpledb.execution.Predicate$Op
@@ -665,7 +665,6 @@ simpledb.index.BTreeLeafPageReverseIterator
 java.lang.Object
 simpledb.storage.Page
 ||:simpledb.storage.BufferPool
-java.lang.Throwable
 simpledb.storage.PageId
 java.util.Map$Entry
 java.util.Iterator
@@ -675,9 +674,9 @@ simpledb.storage.LockManager
 java.util.concurrent.ConcurrentHashMap
 java.util.Set
 java.io.IOException
+java.lang.RuntimeException
 simpledb.storage.Page
 simpledb.storage.BufferPool
-java.util.ArrayList
 java.util.LinkedHashMap
 java.util.List
 simpledb.storage.DbFile
@@ -1094,6 +1093,7 @@ simpledb.storage.TupleDesc
 simpledb.storage.BufferPool
 simpledb.execution.OpIterator
 simpledb.common.Database
+java.lang.Boolean
 java.lang.invoke.StringConcatFactory
 simpledb.execution.Operator
 simpledb.transaction.TransactionAbortedException
@@ -1870,14 +1870,18 @@ simpledb.execution.SeqScan
 org.junit.Assert
 simpledb.transaction.TransactionAbortedException
 ||:simpledb.storage.LockManager
+java.lang.Throwable
 simpledb.storage.PageId
 java.lang.invoke.LambdaMetafactory
 java.lang.invoke.MethodHandles$Lookup
 java.util.Iterator
+java.lang.System
 java.lang.invoke.MethodHandles
 simpledb.storage.LockManager
 java.util.concurrent.ConcurrentHashMap
+java.util.Set
 java.util.ArrayList
+java.util.HashSet
 simpledb.storage.LockManager$Lock
 java.util.List
 java.util.stream.Stream
@@ -1885,6 +1889,7 @@ java.lang.InterruptedException
 simpledb.transaction.TransactionId
 java.util.Map
 simpledb.common.Permissions
+java.util.Optional
 java.lang.Object
 simpledb.transaction.TransactionAbortedException
 ||:simpledb.index.BTreeUtility$BTreeDeleter

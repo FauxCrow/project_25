@@ -152,26 +152,31 @@ public class BufferPool {
      * @param tid    the ID of the transaction requesting the unlock
      * @param commit a flag indicating whether we should commit or abort
      */
-    public void transactionComplete(TransactionId tid, boolean commit) {
-        try {
-            if (commit) {
-                flushPages(tid); // write changes to disk
-            } else {
-                // Abort: reload original pages from disk
-                for (PageId pid : new java.util.ArrayList<>(pageCache.keySet())) {
-                    Page page = pageCache.get(pid);
-                    if (page != null && tid.equals(page.isDirty())) {
-                        DbFile file = Database.getCatalog().getDatabaseFile(pid.getTableId());
-                        Page cleanPage = file.readPage(pid);
-                        pageCache.put(pid, cleanPage);
+     public void transactionComplete(TransactionId tid, boolean commit) {
+        // iterate through all pages in the buffer pool
+        for (PageId pid : pageCache.keySet()) {
+            Page page = pageCache.get(pid);
+
+            // check if the page is dirty like modified by this transaction
+            if (page != null && tid.equals(page.isDirty())) {
+                if (commit) {
+                    try {
+                        // flush dirty page to disk 
+                        flushPage(pid);
+                        // set a new before-image after commit
+                        page.setBeforeImage();
+                    } catch (IOException e) {
+                        throw new RuntimeException("flush failed", e);
                     }
+                } else {
+                    //rrestore old version of page
+                    Page before = page.getBeforeImage();
+                    pageCache.put(pid, before);
                 }
             }
-        } catch (IOException e) {
-            e.printStackTrace();
-        } finally {
-            lockManager.releaseAllLocks(tid);
         }
+        // release all locks held by this transaction
+        lockManager.releaseAllLocks(tid);
     }
 
     /**

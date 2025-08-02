@@ -8,10 +8,13 @@ import simpledb.transaction.TransactionAbortedException;
 import simpledb.transaction.TransactionId;
 
 import java.io.*;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.List;
+import java.util.Set;
 
 /**
  * BufferPool manages the reading and writing of pages into memory from
@@ -97,15 +100,6 @@ public class BufferPool {
         if (pageCache.containsKey(pid)) {
             return pageCache.get(pid);
         }
-
-        /*
-         * Temp: until we implement an eviction policy!!
-         * if (pageCache.size() >= numPages) {
-         * throw new DbException("Buffer pool exceeded max capacity of " + numPages +
-         * " pages");
-         * }
-         */
-
         if (pageCache.size() >= numPages) {
             evictPage();
         }

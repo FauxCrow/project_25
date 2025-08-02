@@ -17,7 +17,7 @@ public class LockManager {
 
     private static class Lock {
         TransactionId tid;
-        Permissions perm;   // READ_ONLY and READ_WRITE
+        Permissions perm; // READ_ONLY and READ_WRITE
 
         Lock(TransactionId tid, Permissions perm) {
             this.tid = tid;
@@ -34,19 +34,33 @@ public class LockManager {
     // Max time to wait for a lock before aborting (ms)
     private static final long LOCK_TIMEOUT = 1000;
 
+    // Wait-for graph for deadlock detection
+    Map<TransactionId, Set<TransactionId>> waitForGraph = new HashMap<>();
+
     /**
      * Acquire a lock for a transaction on a page.
-     * Blocks until the lock can be acquired or throws TransactionAbortedException if timeout occurs to prevent deadlock.
+     * Blocks until the lock can be acquired or throws TransactionAbortedException
+     * if timeout occurs to prevent deadlock.
      */
     public void acquireLock(TransactionId tid, PageId pid, Permissions perm) throws TransactionAbortedException {
         long start = System.currentTimeMillis();
 
         synchronized (this) {
             while (!canGrantLock(tid, pid, perm)) {
+                List<Lock> exisitingLocks = lockTable.get(pid);
+                for (Lock lock : exisitingLocks) {
+                    if (!lock.tid.equals(tid)) {
+                        addEdge(tid, lock.tid);
+                    }
+                }
+                if (detectCycle(tid)) {
+                    throw new TransactionAbortedException();
+                }
+
                 try {
-                    wait(50);  // Wait for 50ms and re-check
+                    wait(50); // Wait for 50ms and re-check
                     if (System.currentTimeMillis() - start > LOCK_TIMEOUT) {
-                        throw new TransactionAbortedException();
+                    throw new TransactionAbortedException();
                     }
                 } catch (InterruptedException e) {
                     throw new TransactionAbortedException();
@@ -55,6 +69,7 @@ public class LockManager {
 
             // once canGrantLock == true
             grantLock(tid, pid, perm);
+            removeTransaction(tid);
         }
     }
 
@@ -103,10 +118,10 @@ public class LockManager {
         List<Lock> locks = lockTable.get(pid);
 
         // Guard clause, no locks == easy false
-        if (locks == null){
+        if (locks == null) {
             return false;
         }
-            
+
         return locks.stream().anyMatch(lock -> lock.tid.equals(tid));
     }
 
@@ -115,7 +130,8 @@ public class LockManager {
      */
     private boolean canGrantLock(TransactionId tid, PageId pid, Permissions perm) {
         List<Lock> locks = lockTable.get(pid);
-        if (locks == null || locks.isEmpty()) return true;
+        if (locks == null || locks.isEmpty())
+            return true;
 
         boolean alreadyHolding = locks.stream().anyMatch(l -> l.tid.equals(tid));
 
@@ -155,4 +171,46 @@ public class LockManager {
         txnLocks.putIfAbsent(tid, new HashSet<>());
         txnLocks.get(tid).add(pid);
     }
+
+    // Deadlock Detection
+    private boolean detectCycle(TransactionId startingTransaction) {
+        Set<TransactionId> visitedList = new HashSet<>();
+        return dfs(startingTransaction, startingTransaction, visitedList);
+    }
+
+    private void addEdge(TransactionId keyId, TransactionId tId) {
+        if (!waitForGraph.containsKey(keyId)) {
+            waitForGraph.put(keyId, new HashSet<>());
+        }
+        waitForGraph.get(keyId).add(tId);
+    }
+
+    private boolean dfs(TransactionId startingTransaction, TransactionId currentTransaction,
+            Set<TransactionId> visitedList) {
+        if (!waitForGraph.containsKey(currentTransaction)) {
+            return false;
+        }
+
+        for (TransactionId neighbour : waitForGraph.get(currentTransaction)) {
+            if (neighbour.equals(startingTransaction)) {
+                return true;
+            }
+            if (!visitedList.contains(neighbour)) {
+                visitedList.add(neighbour);
+
+                if (dfs(startingTransaction, neighbour, visitedList)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    private void removeTransaction(TransactionId tId) {
+        waitForGraph.remove(tId);
+        for (Set<TransactionId> wait : waitForGraph.values()) {
+            wait.remove(tId);
+        }
+    }
+
 }

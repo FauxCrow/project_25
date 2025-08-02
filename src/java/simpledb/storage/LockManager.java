@@ -47,8 +47,8 @@ public class LockManager {
 
         synchronized (this) {
             while (!canGrantLock(tid, pid, perm)) {
-                List<Lock> exisitingLocks = lockTable.get(pid);
-                for (Lock lock : exisitingLocks) {
+                List<Lock> existingLocks = lockTable.get(pid);
+                for (Lock lock : existingLocks) {
                     if (!lock.tid.equals(tid)) {
                         addEdge(tid, lock.tid);
                     }
@@ -56,7 +56,6 @@ public class LockManager {
                 if (detectCycle(tid)) {
                     throw new TransactionAbortedException();
                 }
-
                 try {
                     wait(50); // Wait for 50ms and re-check
                     if (System.currentTimeMillis() - start > LOCK_TIMEOUT) {
@@ -109,6 +108,7 @@ public class LockManager {
             releaseLock(tid, pid);
         }
         txnLocks.remove(tid);
+        removeTransaction(tid);
     }
 
     /**

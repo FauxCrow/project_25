@@ -56,12 +56,14 @@ public class LockManager {
                 if (detectCycle(tid)) {
                     throw new TransactionAbortedException();
                 }
+                
                 try {
                     wait(50); // Wait for 50ms and re-check
-                    if (System.currentTimeMillis() - start > LOCK_TIMEOUT) {
-                    throw new TransactionAbortedException();
-                    }
                 } catch (InterruptedException e) {
+                    throw new TransactionAbortedException();
+                }
+
+                if (System.currentTimeMillis() - start > LOCK_TIMEOUT) {
                     throw new TransactionAbortedException();
                 }
             }
